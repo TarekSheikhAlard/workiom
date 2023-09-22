@@ -6,6 +6,7 @@ using MongoDB.Driver;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using workiom_app.Models;
+using MongoDB.Bson;
 
 namespace workiom_app.Services
 {
@@ -37,7 +38,46 @@ namespace workiom_app.Services
 
         public void Update(string id, Company companyIn)
         {
-            _myCollection.ReplaceOne(company => company.id == id, companyIn);
+            _myCollection.ReplaceOne(company => company.id.Equals(id), companyIn);
+        }
+
+        public List<Company> Search(string searchTerm)
+        {
+            var nameFilter = Builders<Company>.Filter.Regex("name", new BsonRegularExpression(searchTerm, "i"));
+
+            // Assuming searchTerm can be cast to int
+            int searchInt;
+            var employeesCount = Int32.TryParse(searchTerm, out searchInt) ?
+                Builders<Company>.Filter.Eq("employeesCount", searchInt) : Builders<Company>.Filter.Empty;
+
+            var dynamicColumnsFilter = Builders<Company>.Filter.ElemMatch("dynamicColumns",
+                Builders<Column>.Filter.Or(
+                    Builders<Column>.Filter.Regex("name", new BsonRegularExpression(searchTerm, "i")),
+                    Builders<Column>.Filter.Regex("type", new BsonRegularExpression(searchTerm, "i")),
+                    Builders<Column>.Filter.Regex("value", new BsonRegularExpression(searchTerm, "i"))
+                )
+            );
+
+            var combinedFilter = Builders<Company>.Filter.Or(nameFilter, employeesCount, dynamicColumnsFilter); // Combine filters
+
+            return _myCollection.Find(combinedFilter).ToList();
+        }
+
+
+        public List<BsonDocument> GetCompaniesWithContacts()
+        {
+            var pipeline = new BsonDocument[]
+            {
+            new BsonDocument("$lookup", new BsonDocument
+            {
+                { "from", "contacts" },
+                { "localField", "id" },
+                { "foreignField", "companyId" },
+                { "as", "contactDetails" }
+            })
+            };
+
+            return _myCollection.Aggregate<BsonDocument>(pipeline).ToList();
         }
 
 

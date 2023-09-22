@@ -26,10 +26,10 @@ namespace workiom_app.Controllers
         }
 
         [HttpPost]
-        public IActionResult Post([FromBody] Contact company)
+        public IActionResult Post([FromBody] Contact contact)
         {
-            _myDataService.InsertOne(company);
-            return Json(company);
+            _myDataService.InsertOne(contact);
+            return Json(contact);
         }
 
         [HttpDelete("{id}")]
@@ -59,8 +59,27 @@ namespace workiom_app.Controllers
 
             _myDataService.Update(id, contactIn);
 
-            return Ok();
+            return Json(contact);
         }
+
+        [HttpGet("search")]
+        public ActionResult<List<Contact>> Search(string term)
+        {
+
+            if (term == null || term.Equals(""))
+            {
+                return NotFound();
+            }
+            return _myDataService.Search(term);
+        }
+
+
+        [HttpGet("contactsForCompany/{companyId}")]
+        public ActionResult<List<Contact>> GetContactsForCompany(string companyId)
+        {
+            return _myDataService.GetContactsForCompany(companyId);
+        }
+
 
     }
 }

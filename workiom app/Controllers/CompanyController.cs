@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using MongoDB.Bson;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,9 +37,9 @@ namespace workiom_app.Controllers
         [HttpDelete("{id}")]
         public IActionResult Delete(string id)
         {
-            var contact = _myDataService.Get(id);
+            var company = _myDataService.Get(id);
 
-            if (contact == null)
+            if (company == null)
             {
                 return NotFound();
             }
@@ -51,18 +52,34 @@ namespace workiom_app.Controllers
         [HttpPut("{id}")]
         public IActionResult Update(string id, [FromBody] Company companyIn)
         {
-            var contact = _myDataService.Get(id);
+            var company = _myDataService.Get(id);
 
-            if (contact == null)
+            if (company == null)
             {
                 return NotFound();
             }
 
             _myDataService.Update(id, companyIn);
 
-            return Ok();
+            return Json(company);
         }
 
+        [HttpGet("search")]
+        public ActionResult<List<Company>> Search(string term)
+        {
+            if (term == null || term.Equals(""))
+            {
+                return NotFound();
+            }
+            return _myDataService.Search(term);
+        }
+
+
+        [HttpGet("contacts")]
+        public ActionResult<List<BsonDocument>> GetContacts()
+        {
+            return  _myDataService.GetCompaniesWithContacts();
+        }
     }
 }
 
